@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.Loader;
 using AssetRipper.AnalyzeUnityPackages.Helper;
+using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.Primitives;
 
 namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
 
@@ -26,7 +28,7 @@ public static class AssemblyAnalyzer
             return null;
         }
 
-        AnalyzeData analyzeData = new(packageId, new PackageVersion(), new Version());
+        AnalyzeData analyzeData = new(packageId, new PackageVersion(), UnityVersion.MinVersion);
         Assembly assembly = assemblyContext.Value.LoadFromAssemblyPath(srcFile);
 
         AnalyzeAssembly(analyzeData, assembly);

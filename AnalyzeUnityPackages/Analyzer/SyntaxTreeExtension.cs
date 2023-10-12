@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using AssetRipper.AnalyzeUnityPackages.Primitives;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AssetRipper.AnalyzeUnityPackages.Analyzer;

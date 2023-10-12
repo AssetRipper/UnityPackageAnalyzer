@@ -3,15 +3,25 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>Latest</LangVersion>
+        <DebugType>embedded</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
         <RootNamespace>AssetRipper.AnalyzeUnityPackages</RootNamespace>
+
+        <Version>0.3.4.0</Version>
+        <AssemblyVersion>$(Version)</AssemblyVersion>
+        <Copyright>Copyright © ds5678</Copyright>
+        <Authors>Jannify, ds5678</Authors>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AssetRipper.Primitives" Version="2.0.1" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.7.0" />
-      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
       <PackageReference Include="Serilog" Version="3.0.1" />
       <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
-      <PackageReference Include="SharpZipLib" Version="1.4.0" />
+      <PackageReference Include="SharpZipLib" Version="1.4.2" />
     </ItemGroup>
 </Project>

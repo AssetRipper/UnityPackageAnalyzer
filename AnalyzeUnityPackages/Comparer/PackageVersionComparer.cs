@@ -1,5 +1,7 @@
 ﻿using AssetRipper.AnalyzeUnityPackages.Analyzer;
 using AssetRipper.AnalyzeUnityPackages.Helper;
+using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.Primitives;
 
 namespace AssetRipper.AnalyzeUnityPackages.Comparer;
 
@@ -20,7 +22,7 @@ public static class PackageVersionComparer
 
     public static bool CanCompareDll(string dllFile, out string packageId) => packageDllNameById.TryGetValue(Path.GetFileName(dllFile), out packageId);
 
-    public static Dictionary<PackageVersion, double>? CompareGamePackage(string dllFile, ICompareStrategy strategy, Version unityVersion)
+    public static Dictionary<PackageVersion, double>? CompareGamePackage(string dllFile, ICompareStrategy strategy, UnityVersion unityVersion)
     {
         string dllFileName = Path.GetFileName(dllFile);
         if (!packageDllNameById.TryGetValue(dllFileName, out string packageId))

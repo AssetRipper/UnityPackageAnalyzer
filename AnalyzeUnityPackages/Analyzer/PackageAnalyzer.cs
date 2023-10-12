@@ -1,5 +1,7 @@
 ﻿using AssetRipper.AnalyzeUnityPackages.Helper;
 using AssetRipper.AnalyzeUnityPackages.PackageDownloader;
+using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.Primitives;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,14 +25,14 @@ public static class PackageAnalyzer
         return File.Exists(analyzeFile);
     }
 
-    public static List<AnalyzeData> GetAnalyzeResults(string packageId, Version unityVersion)
+    public static List<AnalyzeData> GetAnalyzeResults(string packageId, UnityVersion unityVersion)
     {
         List<AnalyzeData> result = new();
 
         string packageDir = Path.Combine(analyzeResultPath, packageId);
         foreach (string filePath in Directory.EnumerateFiles(packageDir))
         {
-            AnalyzeData? analyzeData = Serializer.DeserializeAnalyzerData(filePath);
+            AnalyzeData? analyzeData = Serializer.DeserializeData<AnalyzeData>(filePath);
 
             if (analyzeData != null && analyzeData.MinUnityVersion < unityVersion)
             {
@@ -41,7 +43,7 @@ public static class PackageAnalyzer
         return result;
     }
 
-    public static async Task AnalyzePackageAsync(string packageId, PackageVersion packageVersion, Version minUnityVersion, CancellationToken ct)
+    public static async Task AnalyzePackageAsync(string packageId, PackageVersion packageVersion, UnityVersion minUnityVersion, CancellationToken ct)
     {
         string packageDir = Path.Combine(analyzeResultPath, packageId);
         if (!Directory.Exists(packageDir))
@@ -93,12 +95,12 @@ public static class PackageAnalyzer
             }
         }
 
-        Serializer.SerializeAnalyzerData(analyzeData, dstFile);
+        Serializer.SerializeAnalyzerDataAsync(analyzeData, dstFile, ct);
     }
 
     private static async Task AnalyzeFile(AnalyzeData analyzeData, string path, CancellationToken ct)
     {
-        string unityGuid = string.Empty;
+	    UnityGuid unityGuid = UnityGuid.Zero;
         string metaFile = path + ".meta";
         if (File.Exists(metaFile))
         {
@@ -106,7 +108,7 @@ public static class PackageAnalyzer
             {
                 if (line.StartsWith("guid: "))
                 {
-                    unityGuid = line[5..].Trim();
+                    unityGuid = UnityGuid.Parse(line[5..]);
                     break;
                 }
             }

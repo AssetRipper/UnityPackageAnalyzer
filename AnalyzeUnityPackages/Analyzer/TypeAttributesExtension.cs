@@ -1,5 +1,7 @@
-﻿using System.Reflection;
+﻿using AssetRipper.AnalyzeUnityPackages.Primitives;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using ParameterModifier = AssetRipper.AnalyzeUnityPackages.Primitives.ParameterModifier;
 
 namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
 
@@ -230,7 +232,7 @@ public static class TypeAttributesExtension
         SortedSet<string> result = new(inheritors.Select(i => i.GetCleanName()));
         foreach (Type i in inheritors)
         {
-            result.ExceptWith(i.GetTypeInfo().ImplementedInterfaces.Select(i => i.GetCleanName()));
+            result.ExceptWith(i.GetTypeInfo().ImplementedInterfaces.Select(ii => ii.GetCleanName()));
         }
 
         return result;

@@ -1,12 +1,13 @@
-﻿using AssetRipper.AnalyzeUnityPackages.Helper;
+﻿using AssetRipper.Primitives;
+using System.Diagnostics;
 
-namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
+namespace AssetRipper.AnalyzeUnityPackages.Primitives;
 
 public class AnalyzeData
 {
     public string PackageId { get; init; }
     public PackageVersion Version { get; init; }
-    public Version MinUnityVersion { get; init; }
+    public UnityVersion MinUnityVersion { get; init; }
     public Dictionary<string, EnumData> GlobalEnums { get; init; }
     public Dictionary<string, ClassData> ClassesByName { get; init; }
 
@@ -16,7 +17,7 @@ public class AnalyzeData
         ClassesByName = new();
     }
 
-    public AnalyzeData(string packageId, PackageVersion version, Version minUnityVersion) : this()
+    public AnalyzeData(string packageId, PackageVersion version, UnityVersion minUnityVersion) : this()
     {
         PackageId = packageId;
         Version = version;
@@ -39,16 +40,17 @@ public class ClassData
     public List<PropertyData> Properties = new();
     public List<IndexerData> Indexer = new();
     public List<MethodData> Methods = new();
-    public string UnityGuid = string.Empty;
+    public UnityGuid UnityGuid = UnityGuid.Zero;
 
-    public void Sort()
+    [Conditional("DEBUG")]
+    public void DebugSort()
     {
         Enums = Enums.OrderBy(e => e.Name).ToList();
         Fields = Fields.OrderBy(f => f.Name).ToList();
         Properties = Properties.OrderBy(p => p.Name).ToList();
         Indexer = Indexer.OrderBy(p => p.Return).ThenBy(m => string.Join(',', m.Parameter)).ToList();
         Methods = Methods.OrderBy(m => m.Name).ThenBy(m => string.Join(',', m.Parameter)).ToList();
-        UnityGuid = string.Empty;
+        UnityGuid = UnityGuid.Zero;
     }
 }
 

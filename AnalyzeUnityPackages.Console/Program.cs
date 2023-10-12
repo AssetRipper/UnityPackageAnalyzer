@@ -5,6 +5,8 @@ using AssetRipper.AnalyzeUnityPackages.Analyzer;
 using AssetRipper.AnalyzeUnityPackages.Comparer;
 using AssetRipper.AnalyzeUnityPackages.Helper;
 using AssetRipper.AnalyzeUnityPackages.PackageDownloader;
+using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.Primitives;
 
 Logger.Init();
 Logger.Info("Hello, World!");
@@ -49,10 +51,17 @@ while (strategy == null)
     };
 }
 
-Version? unityVersion = null;
+UnityVersion? unityVersion = null;
 if (args.Length > 2)
 {
-    Version.TryParse(args[2], out unityVersion);
+	try
+	{
+		unityVersion = UnityVersion.Parse(args[2]);
+	}
+	catch (Exception _)
+	{
+		// ignored
+	}
 }
 
 while (unityVersion == null)
@@ -60,7 +69,15 @@ while (unityVersion == null)
     Logger.Info("Please enter the game unity version");
     string input = Console.ReadLine() ?? string.Empty;
     Console.WriteLine();
-    Version.TryParse(input, out unityVersion);
+
+    try
+    {
+	    unityVersion = UnityVersion.Parse(input);
+    }
+    catch (Exception _)
+    {
+	    // ignored
+    }
 }
 Logger.Info($"Unity Version: {unityVersion}");
 
@@ -79,7 +96,7 @@ foreach (string dllFile in Directory.EnumerateFiles(managedPath, "Unity.*.dll"))
             try
             {
                 string version = pair.Key;
-                Version minUnityVersion = string.IsNullOrEmpty(pair.Value.unity) ? new Version(0,0,0,0) : new Version(pair.Value.unity);
+                UnityVersion minUnityVersion = string.IsNullOrEmpty(pair.Value.unity) ? UnityVersion.MinVersion : UnityVersion.Parse(pair.Value.unity);
                 if (!PackageAnalyzer.HasAnalyzedPackage(packageId, version) && minUnityVersion < unityVersion)
                 {
                     await DownloadManager.DownloadAndExtractPackageAsync(pair.Value.dist, packageId, version, ct2);
@@ -95,7 +112,7 @@ foreach (string dllFile in Directory.EnumerateFiles(managedPath, "Unity.*.dll"))
         });
 
         Logger.Info($"Comparing all analyzed versions to {Path.GetFileName(dllFile)}");
-        Dictionary<PackageVersion, double>? analyzeResult = PackageVersionComparer.CompareGamePackage(dllFile, strategy, unityVersion);
+        Dictionary<PackageVersion, double>? analyzeResult = PackageVersionComparer.CompareGamePackage(dllFile, strategy, unityVersion.Value);
         if (analyzeResult != null)
         {
             analyzeResults.Add(packageId, analyzeResult);

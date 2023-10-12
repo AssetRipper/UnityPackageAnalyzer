@@ -1,4 +1,5 @@
 ﻿using AssetRipper.AnalyzeUnityPackages.Analyzer;
+using AssetRipper.AnalyzeUnityPackages.Primitives;
 
 namespace AssetRipper.AnalyzeUnityPackages.Comparer;
 
