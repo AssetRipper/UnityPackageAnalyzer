@@ -4,5 +4,5 @@ namespace AssetRipper.AnalyzeUnityPackages.Comparer;
 
 public interface ICompareStrategy
 {
-    public double CompareAnalyzeData(AnalyzeData src, AnalyzeData target);
+	public double CompareAnalyzeData(AnalyzeData src, AnalyzeData target);
 }

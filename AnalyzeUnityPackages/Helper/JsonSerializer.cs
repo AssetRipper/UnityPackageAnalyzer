@@ -7,11 +7,7 @@ namespace AssetRipper.AnalyzeUnityPackages.Helper;
 
 public static class Serializer
 {
-	private static readonly JsonSerializerOptions jsonSettings = new()
-	{
-		WriteIndented = false,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-	};
+	private static readonly JsonSerializerOptions jsonSettings = new() { WriteIndented = false, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 	private static readonly JsonSerializerOptions jsonDebugSettings = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
 	public static async void SerializeAnalyzerDataAsync(AnalyzeData? analyzeData, string path, CancellationToken ct)
@@ -49,7 +45,8 @@ public static class Serializer
 
 		public OrderedAnalyzeData(AnalyzeData? data)
 		{
-			if(data != null){
+			if (data != null)
+			{
 				PackageId = data.PackageId;
 				Version = data.Version;
 				MinUnityVersion = data.MinUnityVersion;
