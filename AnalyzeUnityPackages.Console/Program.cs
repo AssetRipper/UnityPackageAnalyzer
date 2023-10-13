@@ -1,15 +1,13 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using AssetRipper.AnalyzeUnityPackages.Analyzer;
+using AssetRipper.AnalyzeUnityPackages;
 using AssetRipper.AnalyzeUnityPackages.Comparer;
 using AssetRipper.AnalyzeUnityPackages.Helper;
-using AssetRipper.AnalyzeUnityPackages.PackageDownloader;
 using AssetRipper.AnalyzeUnityPackages.Primitives;
 using AssetRipper.Primitives;
 using System.Text;
 
 Logger.Init();
-Logger.Info("Hello, World!");
 
 string gameExePath = string.Empty;
 string managedPath = string.Empty;
@@ -51,12 +49,12 @@ while (strategy == null)
 	};
 }
 
-UnityVersion? unityVersion = null;
+UnityVersion? gameVersion = null;
 if (args.Length > 2)
 {
 	try
 	{
-		unityVersion = UnityVersion.Parse(args[2]);
+		gameVersion = UnityVersion.Parse(args[2]);
 	}
 	catch (Exception _)
 	{
@@ -64,7 +62,7 @@ if (args.Length > 2)
 	}
 }
 
-while (unityVersion == null)
+while (gameVersion == null)
 {
 	Logger.Info("Please enter the game unity version");
 	string input = Console.ReadLine() ?? string.Empty;
@@ -72,7 +70,7 @@ while (unityVersion == null)
 
 	try
 	{
-		unityVersion = UnityVersion.Parse(input);
+		gameVersion = UnityVersion.Parse(input);
 	}
 	catch (Exception _)
 	{
@@ -80,55 +78,21 @@ while (unityVersion == null)
 	}
 }
 
-Logger.Info($"Unity Version: {unityVersion}");
+Logger.Info($"Strategy: {strategy.GetType().Name}");
+Logger.Info($"Unity Version: {gameVersion}\n");
 
 CancellationToken ct = new();
-Dictionary<string, Dictionary<PackageVersion, double>> analyzeResults = new();
-foreach (string dllFile in Directory.EnumerateFiles(managedPath, "Unity.*.dll"))
-{
-	if (PackageVersionComparer.CanCompareDll(dllFile, out string packageId))
-	{
-		Logger.Info($"Downloading and analyzing missing Unity packages of {packageId}");
-
-		PackageDomainInfo domainInfo = await DownloadManager.DownloadVersionListAsync(packageId, ct);
-
-		await Parallel.ForEachAsync(domainInfo.versions, ct, async (pair, ct2) =>
-		{
-			try
-			{
-				string version = pair.Key;
-				UnityVersion minUnityVersion = string.IsNullOrEmpty(pair.Value.unity) ? UnityVersion.MinVersion : UnityVersion.Parse(pair.Value.unity);
-				if (!PackageAnalyzer.HasAnalyzedPackage(packageId, version) && minUnityVersion < unityVersion)
-				{
-					await DownloadManager.DownloadAndExtractPackageAsync(pair.Value.dist, packageId, version, ct2);
-					await PackageAnalyzer.AnalyzePackageAsync(packageId, new PackageVersion(version), minUnityVersion, ct2);
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.Error(ex, $"An Error occured while downloading or analyzing {packageId}@{pair.Key}");
-				throw;
-			}
-		});
-
-		Logger.Info($"Comparing all analyzed versions to {Path.GetFileName(dllFile)}");
-		Dictionary<PackageVersion, double>? analyzeResult = PackageVersionComparer.CompareGamePackage(dllFile, strategy, unityVersion.Value);
-		if (analyzeResult != null)
-		{
-			analyzeResults.Add(packageId, analyzeResult);
-		}
-	}
-}
+CompareResults analyzeResults = await AnalyzeUnityPackages.DownloadMissingPackagesAndAnalyzeAsync(managedPath, strategy, gameVersion.Value, ct);
 
 Logger.Info("\n\nAnalyze Results:");
 StringBuilder sb = new();
-foreach (KeyValuePair<string, Dictionary<PackageVersion, double>> analyzeResult in analyzeResults)
+foreach ((string packageId, PackageCompareResult packageResult) in analyzeResults.PackageResults)
 {
 	sb.Clear();
-	sb.Append($"{analyzeResult.Key,35}: ");
-	foreach (KeyValuePair<PackageVersion, double> pair in analyzeResult.Value.OrderByDescending(entry => entry.Value).ThenByDescending(entry => entry.Key).Take(5))
+	sb.Append($"{packageId,35}: ");
+	foreach (KeyValuePair<PackageVersion, double> pair in packageResult.ProbabilityByVersion.OrderByDescending(entry => entry.Value).ThenByDescending(entry => entry.Key).Take(5))
 	{
-		sb.Append($" {pair.Key,18} {$"({pair.Value * 100:###.##}%)",9} -> ");
+		sb.Append($" {pair.Key,18} {$"({pair.Value * 100:##.000} %)",11} -> ");
 	}
 
 	Logger.Info(sb.ToString());

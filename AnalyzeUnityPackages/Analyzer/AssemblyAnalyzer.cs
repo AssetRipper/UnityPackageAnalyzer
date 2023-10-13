@@ -120,13 +120,23 @@ public static class AssemblyAnalyzer
 
 		foreach (KeyValuePair<string, List<EnumData>> pair in localEnumData)
 		{
-			if (!analyzeData.ClassesByName.TryGetValue(pair.Key, out ClassData classData))
+			if (analyzeData.ClassesByName.TryGetValue(pair.Key, out ClassData classData))
 			{
-				Logger.Error($"No class with name {pair.Key} was found for: {pair.Value}");
-				return;
+				classData.Enums.AddRange(pair.Value);
 			}
-
-			classData.Enums = pair.Value;
+			else
+			{
+				ClassData? fallbackClassData = analyzeData.ClassesByName.Values.FirstOrDefault(cd => cd.Name.Split('.').Contains(pair.Key));
+				if (fallbackClassData != null)
+				{
+					fallbackClassData.Enums.AddRange(pair.Value);
+				}
+				else
+				{
+					Logger.Error($"No class with name {pair.Key} was found for {pair.Value.Count} local enums");
+					return;
+				}
+			}
 		}
 	}
 

@@ -2,18 +2,16 @@
 
 public class PackageDomainInfo
 {
-	public string name;
-	public Dictionary<string, PackageInfo> versions;
+	public Dictionary<string, PackageInfo> Versions;
+
+	public PackageDomainInfo()
+	{
+		Versions = new Dictionary<string, PackageInfo>();
+	}
 }
 
 public struct PackageInfo
 {
-	public string name;
-	public string unity;
-	public PackageDistributionInfo dist;
-}
-
-public struct PackageDistributionInfo
-{
-	public string tarball;
+	public string MinUnity;
+	public string DistTarball;
 }

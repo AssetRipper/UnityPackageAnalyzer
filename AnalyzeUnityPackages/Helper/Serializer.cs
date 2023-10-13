@@ -7,7 +7,7 @@ namespace AssetRipper.AnalyzeUnityPackages.Helper;
 
 public static class Serializer
 {
-	private static readonly JsonSerializerOptions jsonSettings = new() { WriteIndented = false, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+	private static readonly JsonSerializerOptions jsonSettings = new() { IncludeFields = true };
 	private static readonly JsonSerializerOptions jsonDebugSettings = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
 	public static async void SerializeAnalyzerDataAsync(AnalyzeData? analyzeData, string path, CancellationToken ct)
@@ -16,10 +16,16 @@ public static class Serializer
 		await JsonSerializer.SerializeAsync(stream, analyzeData, jsonSettings, ct);
 
 #if DEBUG
-		await using FileStream debugStream = File.Create(path.Insert(path.Length - 5, "_debug"));
-		await JsonSerializer.SerializeAsync(stream, new OrderedAnalyzeData(analyzeData), jsonDebugSettings, ct);
-		analyzeData = null; // analyzeData gets polluted by encapsulating in OrderedAnalyzeData and should not be used further
+		//await using FileStream debugStream = File.Create(path.Insert(path.Length - 5, "_debug"));
+		//await JsonSerializer.SerializeAsync(stream, new OrderedAnalyzeData(analyzeData), jsonDebugSettings, ct);
+		//analyzeData = null; // analyzeData gets polluted by encapsulating in OrderedAnalyzeData and should not be used further
 #endif
+	}
+
+	public static async void SerializeDataAsync<T>(string path, T value, CancellationToken ct)
+	{
+		await using FileStream stream = File.Create(path);
+		await JsonSerializer.SerializeAsync(stream, value, jsonSettings, ct);
 	}
 
 	public static async Task<T?> DeserializeDataAsync<T>(string path, CancellationToken ct)

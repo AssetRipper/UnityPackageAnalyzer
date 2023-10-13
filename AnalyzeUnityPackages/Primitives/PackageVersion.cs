@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace AssetRipper.AnalyzeUnityPackages.Primitives;
 
 [JsonConverter(typeof(PackageVersionJsonConverter))]
-public readonly struct PackageVersion : IComparable<PackageVersion?>, IEquatable<PackageVersion?>
+public readonly struct PackageVersion : IComparable, IComparable<PackageVersion>, IEquatable<PackageVersion>
 {
 	private static readonly Regex intRegex = new Regex(@"\d+");
 
@@ -51,46 +51,53 @@ public readonly struct PackageVersion : IComparable<PackageVersion?>, IEquatable
 
 	public static PackageVersion Parse(string versionString) => new(versionString);
 
-	public int CompareTo(PackageVersion? other)
+	public int CompareTo(PackageVersion other)
 	{
-		if (other == null)
-		{
-			return 1;
-		}
-
 		if (Equals(other, this))
 		{
 			return 0;
 		}
 
-		int versionComp = Version.CompareTo(other.Value.Version);
+		int versionComp = Version.CompareTo(other.Version);
 		if (versionComp != 0)
 		{
 			return versionComp;
 		}
 
-		if (Separator == null || other.Value.Separator == null)
+		if (Separator == null || other.Separator == null)
 		{
 			return Separator != null ? -1 : 1;
 		}
 
-		if (!PreviewVersion.HasValue || !other.Value.PreviewVersion.HasValue)
+		if (!PreviewVersion.HasValue || !other.PreviewVersion.HasValue)
 		{
 			return 0;
 		}
 
-		int previewVersionComp = PreviewVersion.Value - other.Value.PreviewVersion.Value;
+		int previewVersionComp = PreviewVersion.Value - other.PreviewVersion.Value;
 		if (previewVersionComp != 0)
 		{
 			return previewVersionComp;
 		}
 
-		if (PreviewSuffix.HasValue && other.Value.PreviewSuffix.HasValue)
+		if (PreviewSuffix.HasValue && other.PreviewSuffix.HasValue)
 		{
-			return PreviewSuffix.Value - other.Value.PreviewSuffix.Value;
+			return PreviewSuffix.Value - other.PreviewSuffix.Value;
 		}
 
 		return 0;
+	}
+
+
+
+	public int CompareTo(object? obj)
+	{
+		return obj switch
+		{
+			null => 1,
+			PackageVersion other => CompareTo(other),
+			_ => throw new ArgumentException("Type is not PackageVersion", nameof(obj))
+		};
 	}
 
 	public override string ToString()
@@ -101,13 +108,12 @@ public readonly struct PackageVersion : IComparable<PackageVersion?>, IEquatable
 			$"{Version}-{Separator}.{PreviewVersion.Value}{PreviewSuffix}";
 	}
 
-	public bool Equals(PackageVersion? other)
+	public bool Equals(PackageVersion other)
 	{
-		return other.HasValue &&
-		       Version.Equals(other.Value.Version) &&
-		       Separator == other.Value.Separator &&
-		       PreviewVersion == other.Value.PreviewVersion &&
-		       PreviewSuffix == other.Value.PreviewSuffix;
+		return Version.Equals(other.Version) &&
+		       Separator == other.Separator &&
+		       PreviewVersion == other.PreviewVersion &&
+		       PreviewSuffix == other.PreviewSuffix;
 	}
 
 	public override bool Equals(object? obj)
@@ -120,5 +126,15 @@ public readonly struct PackageVersion : IComparable<PackageVersion?>, IEquatable
 	public override int GetHashCode()
 	{
 		return HashCode.Combine(Version, Separator, PreviewVersion, PreviewSuffix);
+	}
+
+	public static bool operator ==(PackageVersion left, PackageVersion right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(PackageVersion left, PackageVersion right)
+	{
+		return !(left == right);
 	}
 }

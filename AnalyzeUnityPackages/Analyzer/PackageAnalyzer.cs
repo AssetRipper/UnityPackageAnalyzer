@@ -45,9 +45,11 @@ public static class PackageAnalyzer
 
 	public static async Task AnalyzePackageAsync(string packageId, PackageVersion packageVersion, UnityVersion minUnityVersion, CancellationToken ct)
 	{
-		string packageDir = Path.Combine(analyzeResultPath, packageId);
-		if (!Directory.Exists(packageDir))
+		try
 		{
+			string packageDir = Path.Combine(analyzeResultPath, packageId);
+			if (!Directory.Exists(packageDir))
+			{
 			Directory.CreateDirectory(packageDir);
 		}
 
@@ -95,7 +97,12 @@ public static class PackageAnalyzer
 			}
 		}
 
-		Serializer.SerializeAnalyzerDataAsync(analyzeData, dstFile, ct);
+			Serializer.SerializeAnalyzerDataAsync(analyzeData, dstFile, ct);
+		}
+		catch (Exception ex)
+		{
+			Logger.Error(ex, $"An Error occured while analyzing {packageId}@{packageVersion}");
+		}
 	}
 
 	private static async Task AnalyzeFile(AnalyzeData analyzeData, string path, CancellationToken ct)
@@ -238,7 +245,11 @@ public static class PackageAnalyzer
 					break;
 				case NamespaceDeclarationSyntax namespaceSyntax:
 					namespaceText = namespaceSyntax.Name.ToString(); // Namespaces need full name and not only right side
-					workQueue.EnqueueRange(node.ChildNodes());
+					if (namespaceText != "zzzUnity.Burst.CodeGen") // Custom Burst namespace which should be ignored
+					{
+						workQueue.EnqueueRange(node.ChildNodes());
+					}
+
 					break;
 				case UsingDirectiveSyntax usingSyntax:
 					if (usingSyntax.Alias != null)
@@ -281,7 +292,7 @@ public static class PackageAnalyzer
 				case PropertyDeclarationSyntax propertySyntax:
 					ProtectionLevel baseProtection = EnumExtension.Max(propertySyntax.GetProtectionLevel(propertySyntax.Modifiers), classInheritingProtection);
 
-					if (propertySyntax.ExpressionBody != null) //Special case without AccessorList
+					if (propertySyntax.ExpressionBody != null) //Special case without AccessorList (e.g. "property => otherValue")
 					{
 						classData.Properties.Add(new PropertyData
 						{
@@ -336,6 +347,19 @@ public static class PackageAnalyzer
 					});
 					break;
 				case IndexerDeclarationSyntax indexerSyntax:
+					if (indexerSyntax.ExpressionBody != null) //Special case without AccessorList (e.g. "ths[int i] => otherValue[i]")
+					{
+						classData.Indexer.Add(new IndexerData
+						{
+							Protection = EnumExtension.Max(indexerSyntax.GetProtectionLevel(indexerSyntax.Modifiers), classInheritingProtection),
+							HasGetter = true,
+							HasSetter = true,
+							Modifier = indexerSyntax.Modifiers.GetModifiers(classInheritingModifiers) & ~Modifier.SEALED,
+							Parameter = indexerSyntax.ParameterList.Parameters.Select(p => p.GetParameterData(usingAlias)).ToArray(),
+							Return = indexerSyntax.Type.GetTypeText(usingAlias)
+						});
+						break;
+					}
 					SyntaxList<AccessorDeclarationSyntax> indexerAccessors = indexerSyntax.AccessorList.Accessors;
 					classData.Indexer.Add(new IndexerData
 					{

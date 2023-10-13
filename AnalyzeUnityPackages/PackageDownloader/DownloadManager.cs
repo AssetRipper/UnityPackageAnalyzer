@@ -3,6 +3,7 @@ using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Nodes;
 
 namespace AssetRipper.AnalyzeUnityPackages.PackageDownloader;
 
@@ -21,14 +22,30 @@ public static class DownloadManager
 			return await Serializer.DeserializeDataAsync<PackageDomainInfo>(cacheFilePath, ct) ?? throw new SerializationException();
 		}
 
-		string rawData = await downloadPackageClient.GetStringAsync(packageId, ct);
+		Stream rawData = await downloadPackageClient.GetStreamAsync(packageId, ct);
+		JsonNode? json = JsonNode.Parse(rawData);
+		if (json == null)
+		{
+			throw new SerializationException($"Failed to parse downloaded PackageDomainInfo");
+		}
+
+		PackageDomainInfo domainInfo = new PackageDomainInfo();
+		foreach (KeyValuePair<string, JsonNode?> versionJson in json["versions"].AsObject())
+		{
+			PackageInfo packageInfo = new PackageInfo();
+			packageInfo.MinUnity = versionJson.Value["unity"]?.GetValue<string>();
+			packageInfo.DistTarball = versionJson.Value["dist"]["tarball"].GetValue<string>();
+
+			domainInfo.Versions.Add(versionJson.Key, packageInfo);
+		}
+
 		Directory.CreateDirectory(tempListPath);
-		await File.WriteAllTextAsync(cacheFilePath, rawData, ct);
-		return await Serializer.DeserializeDataAsync<PackageDomainInfo>(rawData, ct) ?? throw new SerializationException();
+		Serializer.SerializeDataAsync(cacheFilePath, domainInfo, ct);
+		return domainInfo;
 	}
 
 
-	public static async Task DownloadAndExtractPackageAsync(PackageDistributionInfo packageDistribution, string packageId, string version, CancellationToken ct)
+	public static async Task DownloadAndExtractPackageAsync(string tarballUrl, string packageId, string version, CancellationToken ct)
 	{
 		string destinationDir = GetExtractPath(packageId, version);
 		if (Directory.Exists(destinationDir) && Directory.EnumerateFileSystemEntries(destinationDir).Any())
@@ -38,16 +55,28 @@ public static class DownloadManager
 		}
 
 		Logger.Debug($"Downloading package {packageId}@{version}");
-		using HttpClient client = new();
-		using HttpResponseMessage response = await client.GetAsync(packageDistribution.tarball, ct);
-		await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
+		TarArchive? tarArchive = null;
+		try
+		{
+			using HttpClient client = new();
+			using HttpResponseMessage response = await client.GetAsync(tarballUrl, ct);
+			await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
 
-		await using GZipInputStream gzipStream = new(stream);
-		TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.Default);
+			await using GZipInputStream gzipStream = new(stream);
+			tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.Default);
 
-		Directory.CreateDirectory(destinationDir);
-		tarArchive.ExtractContents(destinationDir);
-		tarArchive.Close();
+			Directory.CreateDirectory(destinationDir);
+			tarArchive.ExtractContents(destinationDir);
+
+		}
+		catch (Exception ex)
+		{
+			Logger.Error(ex, $"An Error occured while downloading {packageId}@{version}");
+		}
+		finally
+		{
+			tarArchive?.Close();
+		}
 	}
 
 	public static string GetExtractPath(string packageId, string packageVersion) => Path.Combine(tempExtractPath, packageId, packageVersion);

@@ -5,42 +5,44 @@ namespace AssetRipper.AnalyzeUnityPackages.Primitives;
 
 public class AnalyzeData
 {
-    public string PackageId { get; init; }
-    public PackageVersion Version { get; init; }
-    public UnityVersion MinUnityVersion { get; init; }
-    public Dictionary<string, EnumData> GlobalEnums { get; init; }
-    public Dictionary<string, ClassData> ClassesByName { get; init; }
+	public string PackageId { get; init; }
+	public PackageVersion Version { get; init; }
+	public UnityVersion MinUnityVersion { get; init; }
+	public Dictionary<string, EnumData> GlobalEnums { get; init; }
+	public Dictionary<string, ClassData> ClassesByName { get; init; }
 
-    public AnalyzeData()
-    {
-	    PackageId = string.Empty;
-	    Version = PackageVersion.Zero;
-	    MinUnityVersion = UnityVersion.MinVersion;
-        GlobalEnums = new Dictionary<string, EnumData>();
+	public AnalyzeData()
+	{
+		PackageId = string.Empty;
+		Version = PackageVersion.Zero;
+		MinUnityVersion = UnityVersion.MinVersion;
+		GlobalEnums = new Dictionary<string, EnumData>();
 		ClassesByName = new Dictionary<string, ClassData>();
 	}
 
-	public AnalyzeData(string packageId, PackageVersion version, UnityVersion minUnityVersion) : this()
+	public AnalyzeData(string packageId) : this(packageId, PackageVersion.Zero, UnityVersion.MinVersion) { }
+
+	public AnalyzeData(string packageId, PackageVersion version, UnityVersion minUnityVersion)
 	{
 		PackageId = packageId;
 		Version = version;
-        MinUnityVersion = minUnityVersion;
-    }
-
-
+		MinUnityVersion = minUnityVersion;
+		GlobalEnums = new Dictionary<string, EnumData>();
+		ClassesByName = new Dictionary<string, ClassData>();
+	}
 }
 
 public class ClassData
 {
-    public string Namespace = string.Empty;
-    public ProtectionLevel ProtectionLevel;
-    public Modifier Modifier;
-    public ClassType Type = ClassType.UNKNOWN;
-    public string Name = string.Empty;
-    public SortedSet<string> Inheritors = new();
+	public string Namespace = string.Empty;
+	public ProtectionLevel ProtectionLevel;
+	public Modifier Modifier;
+	public ClassType Type = ClassType.UNKNOWN;
+	public string Name = string.Empty;
+	public SortedSet<string> Inheritors = new();
 	public List<EnumData> Enums = new();
 	public List<FieldData> Fields = new();
-    public List<PropertyData> Properties = new();
+	public List<PropertyData> Properties = new();
 	public List<IndexerData> Indexer = new();
 	public List<MethodData> Methods = new();
 	public UnityGuid UnityGuid = UnityGuid.Zero;
