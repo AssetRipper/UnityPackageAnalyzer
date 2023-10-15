@@ -1,10 +1,9 @@
-﻿using AssetRipper.AnalyzeUnityPackages.Analyzer;
+using AssetRipper.AnalyzeUnityPackages.Analyzer;
 using AssetRipper.AnalyzeUnityPackages.Comparer;
 using AssetRipper.AnalyzeUnityPackages.Helper;
 using AssetRipper.AnalyzeUnityPackages.PackageDownloader;
 using AssetRipper.AnalyzeUnityPackages.Primitives;
 using AssetRipper.Primitives;
-using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 
@@ -44,7 +43,7 @@ public static class AnalyzeUnityPackages
 		return true;
 	}
 
-	public static async Task<CompareResults> DownloadMissingPackagesAndAnalyzeAsync(string managedPath, ICompareStrategy strategy, UnityVersion gameVersion, CancellationToken ct)
+	public static async Task<CompareResults> CompareGameAssembliesAsync(string managedPath, ICompareStrategy strategy, UnityVersion gameVersion, CancellationToken ct)
 	{
 		CompareResults analyzeResults = new();
 		foreach (string dllFile in Directory.EnumerateFiles(managedPath, "Unity.*.dll"))
@@ -54,55 +53,72 @@ public static class AnalyzeUnityPackages
 				continue;
 			}
 
-			await DownloadAndAnalyzeMissingPackagesAsync(dllFile, gameVersion, ct).ContinueWith(_ =>
+			await DownloadAndAnalyzeMissingPackagesAsync(packageId, gameVersion, ct);
+
+			PackageCompareResult? result = AnalyzePackageDll(dllFile, strategy, gameVersion);
+			if (result != null)
 			{
-				PackageCompareResult? result = AnalyzePackageDll(dllFile, strategy, gameVersion);
-				if (result != null)
-				{
-					analyzeResults.PackageResults.Add(packageId, result);
-				}
-			}, ct);
+				analyzeResults.PackageResults.Add(packageId, result);
+			}
 		}
 
 		return analyzeResults;
 	}
 
-	public static async Task DownloadAndAnalyzeMissingPackagesAsync(string dllFile, UnityVersion gameVersion, CancellationToken ct)
+	private static async Task DownloadAndAnalyzeMissingPackagesAsync(string packageId, UnityVersion gameVersion, CancellationToken ct)
 	{
-		if (!CanCompareDll(dllFile, out string packageId))
-		{
-			return;
-		}
-
 		if (packageId == "com.unity.addressables") // com.unity.addressables version analyzing doesn't need source files
 		{
 			return;
 		}
 
-		Logger.Info($"Downloading and analyzing missing unity packages of {packageId}");
+		List<(string url, string version)> tarballsToDownload = new();
+		List<(PackageVersion Version, UnityVersion MinUnityVersion)> packagesToAnalyze = new();
 
 		PackageDomainInfo domainInfo = await DownloadManager.DownloadVersionListAsync(packageId, ct);
-
-		List<Task> analyzeTasks = new List<Task>();
 		foreach ((string version, PackageInfo packageInfo) in domainInfo.Versions)
 		{
 			if (PackageAnalyzer.HasAnalyzedPackage(packageId, version))
 			{
-				return;
+				continue;
 			}
 
-
 			UnityVersion minUnityVersion = string.IsNullOrEmpty(packageInfo.MinUnity) ? UnityVersion.MinVersion : UnityVersion.Parse(packageInfo.MinUnity);
-			if (minUnityVersion <= gameVersion)
+			if (minUnityVersion > gameVersion)
 			{
-				await DownloadManager.DownloadAndExtractPackageAsync(packageInfo.DistTarball, packageId, version, ct).ContinueWith(_ =>
+				continue;
+			}
+
+			if (!DownloadManager.IsPackageExtracted(packageId, version))
+			{
+				tarballsToDownload.Add((packageInfo.DistTarball, version));
+			}
+
+			packagesToAnalyze.Add((PackageVersion.Parse(version), minUnityVersion));
+		}
+
+		if (tarballsToDownload.Count > 0)
+		{
+			Logger.Info($"Downloading {tarballsToDownload.Count} missing packages of {packageId}");
+
+			if (packageId.Equals("com.unity.burst", StringComparison.Ordinal)) // Burst packages are >500mb in size and should be downloaded one after the other
+			{
+				foreach ((string url, string version) in tarballsToDownload)
 				{
-					analyzeTasks.Add(PackageAnalyzer.AnalyzePackageAsync(packageId, new PackageVersion(version), minUnityVersion, ct));
-				}, ct);
+					await DownloadManager.DownloadAndExtractPackageAsync(packageId, version, url, ct);
+				}
+			}
+			else
+			{
+				await DownloadManager.DownloadAndExtractPackagesAsync(packageId, tarballsToDownload, 5, ct);
 			}
 		}
 
-		await Task.WhenAll(analyzeTasks);
+		if (packagesToAnalyze.Count > 0)
+		{
+			Logger.Info($"Analyzing {packagesToAnalyze.Count} missing packages of {packageId}");
+			await PackageAnalyzer.AnalyzePackagesAsync(packageId, packagesToAnalyze, ct);
+		}
 	}
 
 	public static PackageCompareResult? AnalyzePackageDll(string dllFile, ICompareStrategy strategy, UnityVersion gameVersion)

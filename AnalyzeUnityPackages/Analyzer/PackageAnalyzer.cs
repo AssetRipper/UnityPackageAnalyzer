@@ -5,13 +5,14 @@ using AssetRipper.Primitives;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+using System.Collections.Concurrent;
 
 namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
 
 public static class PackageAnalyzer
 {
-	private static readonly string analyzeResultPath =
-		Path.Combine(Path.GetTempPath(), "AssetRipper", "AnalyzeUnityPackages", "AnalyzedPackages");
+	private static readonly string analyzeResultPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "AnalyzeUnityPackages", "AnalyzedPackages");
 
 	public static bool HasAnyAnalyzedPackages(string packageId)
 	{
@@ -43,13 +44,19 @@ public static class PackageAnalyzer
 		return result;
 	}
 
+	public static async Task AnalyzePackagesAsync(string packageId, IEnumerable<(PackageVersion Version, UnityVersion MinUnityVersion)> parsedPackageDatum, CancellationToken ct)
+	{
+		await Parallel.ForEachAsync(parsedPackageDatum, ct, async (data, ct2) =>
+		{
+			await AnalyzePackageAsync(packageId, data.Version, data.MinUnityVersion, ct2);
+		});
+	}
+
 	public static async Task AnalyzePackageAsync(string packageId, PackageVersion packageVersion, UnityVersion minUnityVersion, CancellationToken ct)
 	{
-		try
+		string packageDir = Path.Combine(analyzeResultPath, packageId);
+		if (!Directory.Exists(packageDir))
 		{
-			string packageDir = Path.Combine(analyzeResultPath, packageId);
-			if (!Directory.Exists(packageDir))
-			{
 			Directory.CreateDirectory(packageDir);
 		}
 
@@ -70,44 +77,89 @@ public static class PackageAnalyzer
 		Logger.Debug($"Analyzing package {packageId}@{packageVersion}");
 		AnalyzeData analyzeData = new(packageId, packageVersion, minUnityVersion);
 
-		foreach (string file in Directory.EnumerateFiles(srcDir, "*.cs", SearchOption.AllDirectories))
+		BlockingCollection<Tuple<SyntaxTree, UnityGuid>> fileDataResults = new();
+
+		Task importTask = Task.Run(async () =>
 		{
-			string fileDir = Path.GetDirectoryName(file) ?? string.Empty;
-			if (fileDir.Contains("Editor") || fileDir.Contains("Test"))
+			foreach (string file in Directory.EnumerateFiles(srcDir, "*.cs", SearchOption.AllDirectories))
 			{
-				continue;
+				string fileDir = Path.GetDirectoryName(file) ?? string.Empty;
+				if (fileDir.Contains("Editor") || fileDir.Contains("Test"))
+				{
+					continue;
+				}
+
+				// Excluded files and folders: https://docs.unity3d.com/Manual/SpecialFolders.html
+				string fileName = Path.GetFileName(file);
+				string relativePath = file[file.IndexOf("package", StringComparison.Ordinal)..];
+				if (relativePath.Contains(@"\.") || relativePath.Contains(@"~\") || relativePath.Contains(@"\cvs\") || fileName.EndsWith(".tmp"))
+				{
+					continue;
+				}
+
+				SyntaxTree syntaxTree = await GetSyntaxTreeAsync(file, ct);
+				UnityGuid unityGuid = await GetUnityGuidAsync(file, ct);
+
+				try
+				{
+					fileDataResults.Add(new Tuple<SyntaxTree, UnityGuid>(syntaxTree, unityGuid), ct);
+				}
+				catch (OperationCanceledException) // Cancellation causes OCE
+				{
+					fileDataResults.CompleteAdding();
+					break;
+				}
 			}
 
-			// Excluded files and folders: https://docs.unity3d.com/Manual/SpecialFolders.html
-			string fileName = Path.GetFileName(file);
-			string relativePath = file[file.IndexOf("package", StringComparison.Ordinal)..];
-			if (relativePath.Contains(@"\.") || relativePath.Contains(@"~\") || relativePath.Contains(@"\cvs\") || fileName.EndsWith(".tmp"))
-			{
-				continue;
-			}
+			fileDataResults.CompleteAdding();
+		}, ct);
 
-			try
-			{
-				await AnalyzeFile(analyzeData, file, ct);
-			}
-			catch (Exception ex)
-			{
-				Logger.Error(ex, $"Failed analyzing {fileName}");
-				throw;
-			}
-		}
 
-			Serializer.SerializeAnalyzerDataAsync(analyzeData, dstFile, ct);
-		}
-		catch (Exception ex)
+		Task processTask = Task.Run(() =>
 		{
-			Logger.Error(ex, $"An Error occured while analyzing {packageId}@{packageVersion}");
-		}
+			while (!fileDataResults.IsCompleted)
+			{
+				Tuple<SyntaxTree, UnityGuid>? data = null;
+				try
+				{
+					data = fileDataResults.Take(ct);
+					SyntaxNode rootNode = data.Item1.GetRoot(ct);
+					AnalyzeSourceText(analyzeData, rootNode, data.Item2);
+				}
+				// An InvalidOperationException means that Take() was called on a completed collection
+				catch (InvalidOperationException)
+				{
+					break;
+				}
+				catch (OperationCanceledException)
+				{
+					break;
+				}
+				catch (Exception ex)
+				{
+					Logger.Error(ex, $"Failed analyzing for {data?.Item1.FilePath}");
+				}
+			}
+		}, ct);
+
+		await Task.WhenAll(importTask, processTask);
+		await Serializer.SerializeDataAsync(dstFile, analyzeData, ct);
 	}
 
-	private static async Task AnalyzeFile(AnalyzeData analyzeData, string path, CancellationToken ct)
+
+	private static async Task<SyntaxTree> GetSyntaxTreeAsync(string path, CancellationToken ct)
 	{
-		UnityGuid unityGuid = UnityGuid.Zero;
+		SourceText sourceText;
+		await using (FileStream stream = File.OpenRead(path))
+		{
+			sourceText = SourceText.From(stream);
+		}
+
+		return CSharpSyntaxTree.ParseText(sourceText, cancellationToken: ct);
+	}
+
+	private static async Task<UnityGuid> GetUnityGuidAsync(string path, CancellationToken ct)
+	{
 		string metaFile = path + ".meta";
 		if (File.Exists(metaFile))
 		{
@@ -115,18 +167,20 @@ public static class PackageAnalyzer
 			{
 				if (line.StartsWith("guid: "))
 				{
-					unityGuid = UnityGuid.Parse(line[5..]);
-					break;
+					return UnityGuid.Parse(line[5..]);
 				}
 			}
 		}
 
-		string context = await File.ReadAllTextAsync(path, ct);
-		SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(context, cancellationToken: ct);
+		return UnityGuid.Zero;
+	}
+
+	private static void AnalyzeSourceText(AnalyzeData analyzeData, SyntaxNode syntaxTreeRoot, UnityGuid unityGuid)
+	{
 		string namespaceText = string.Empty;
 		Dictionary<string, string> usingAlias = new();
 
-		Queue<SyntaxNode> workQueue = new((await syntaxTree.GetRootAsync(ct)).ChildNodes());
+		Queue<SyntaxNode> workQueue = new(syntaxTreeRoot.ChildNodes());
 		while (workQueue.Count > 0)
 		{
 			SyntaxNode node = workQueue.Dequeue();
@@ -360,6 +414,7 @@ public static class PackageAnalyzer
 						});
 						break;
 					}
+
 					SyntaxList<AccessorDeclarationSyntax> indexerAccessors = indexerSyntax.AccessorList.Accessors;
 					classData.Indexer.Add(new IndexerData
 					{

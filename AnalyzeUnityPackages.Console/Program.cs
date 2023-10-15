@@ -82,21 +82,20 @@ Logger.Info($"Strategy: {strategy.GetType().Name}");
 Logger.Info($"Unity Version: {gameVersion}\n");
 
 CancellationToken ct = new();
-CompareResults analyzeResults = await AnalyzeUnityPackages.DownloadMissingPackagesAndAnalyzeAsync(managedPath, strategy, gameVersion.Value, ct);
+CompareResults analyzeResults = await AnalyzeUnityPackages.CompareGameAssembliesAsync(managedPath, strategy, gameVersion.Value, ct);
 
-Logger.Info("\n\nAnalyze Results:");
-StringBuilder sb = new();
+StringBuilder sb = new("\n\nAnalyze Results:\n");
 foreach ((string packageId, PackageCompareResult packageResult) in analyzeResults.PackageResults)
 {
-	sb.Clear();
 	sb.Append($"{packageId,35}: ");
 	foreach (KeyValuePair<PackageVersion, double> pair in packageResult.ProbabilityByVersion.OrderByDescending(entry => entry.Value).ThenByDescending(entry => entry.Key).Take(5))
 	{
-		sb.Append($" {pair.Key,18} {$"({pair.Value * 100:##.000} %)",11} -> ");
+		sb.Append($" {pair.Key,18} {$"({pair.Value * 100:#0.000} %)",11} -> ");
 	}
 
-	Logger.Info(sb.ToString());
+	sb.AppendLine();
 }
 
+Logger.Info(sb.ToString());
 Logger.Info("Finished! Press any Key do exit.");
 Console.ReadKey();

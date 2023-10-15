@@ -44,8 +44,54 @@ public static class DownloadManager
 		return domainInfo;
 	}
 
+	public static bool IsPackageExtracted(string packageId, string version)
+	{
+		string destinationDir = GetExtractPath(packageId, version);
+		return Directory.Exists(destinationDir) && Directory.EnumerateFiles(destinationDir).Any();
+	}
 
-	public static async Task DownloadAndExtractPackageAsync(string tarballUrl, string packageId, string version, CancellationToken ct)
+	public static async Task DownloadAndExtractPackagesAsync(string packageId, List<(string url, string version)> packages, int limit, CancellationToken ct)
+	{
+		using HttpClient client = new HttpClient();
+		using SemaphoreSlim semaphore = new SemaphoreSlim(limit, limit);
+
+		List<Task> tasks = new();
+		foreach ((string url, string version) in packages)
+		{
+			tasks.Add(DownloadUrlHelperAsync(packageId, version, url, semaphore, client, ct));
+		}
+		await Task.WhenAll(tasks).ConfigureAwait(false);
+	}
+
+	private static async Task DownloadUrlHelperAsync(string packageId, string version, string url, SemaphoreSlim semaphore, HttpClient client, CancellationToken ct)
+	{
+		await semaphore.WaitAsync(ct).ConfigureAwait(false);
+		Logger.Debug($"Downloading {packageId}@{version}");
+
+		try
+		{
+			using HttpResponseMessage response = await client.GetAsync(url, ct).ConfigureAwait(false);
+			if (!response.IsSuccessStatusCode)
+			{
+				Logger.Error($"An error occured while downloading {packageId}@{version}: {response.StatusCode}");
+				return;
+			}
+
+			await using Stream stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+			await using GZipInputStream gzipStream = new(stream);
+			TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.Default);
+
+			string destinationDir = GetExtractPath(packageId, version);
+			Directory.CreateDirectory(destinationDir);
+			tarArchive.ExtractContents(destinationDir);
+		}
+		finally
+		{
+			semaphore.Release();
+		}
+	}
+
+	public static async Task DownloadAndExtractPackageAsync(string packageId, string version, string tarballUrl, CancellationToken ct)
 	{
 		string destinationDir = GetExtractPath(packageId, version);
 		if (Directory.Exists(destinationDir) && Directory.EnumerateFileSystemEntries(destinationDir).Any())

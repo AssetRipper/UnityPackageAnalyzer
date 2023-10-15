@@ -46,17 +46,6 @@ public class ClassData
 	public List<IndexerData> Indexer = new();
 	public List<MethodData> Methods = new();
 	public UnityGuid UnityGuid = UnityGuid.Zero;
-
-	[Conditional("DEBUG")]
-	public void DebugSort()
-	{
-		Enums = Enums.OrderBy(e => e.Name).ToList();
-		Fields = Fields.OrderBy(f => f.Name).ToList();
-		Properties = Properties.OrderBy(p => p.Name).ToList();
-		Indexer = Indexer.OrderBy(p => p.Return).ThenBy(m => string.Join(',', m.Parameter)).ToList();
-		Methods = Methods.OrderBy(m => m.Name).ThenBy(m => string.Join(',', m.Parameter)).ToList();
-		UnityGuid = UnityGuid.Zero;
-	}
 }
 
 public struct FieldData
