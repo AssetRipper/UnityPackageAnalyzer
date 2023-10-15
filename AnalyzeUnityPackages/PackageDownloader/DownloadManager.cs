@@ -26,7 +26,7 @@ public static class DownloadManager
 		JsonNode? json = JsonNode.Parse(rawData);
 		if (json == null)
 		{
-			throw new SerializationException($"Failed to parse downloaded PackageDomainInfo");
+			throw new SerializationException("Failed to parse downloaded PackageDomainInfo");
 		}
 
 		PackageDomainInfo domainInfo = new PackageDomainInfo();
@@ -47,7 +47,7 @@ public static class DownloadManager
 	public static bool IsPackageExtracted(string packageId, string version)
 	{
 		string destinationDir = GetExtractPath(packageId, version);
-		return Directory.Exists(destinationDir) && Directory.EnumerateFiles(destinationDir).Any();
+		return Directory.Exists(destinationDir) && Directory.EnumerateFiles(destinationDir, "*.*", SearchOption.AllDirectories).Any();
 	}
 
 	public static async Task DownloadAndExtractPackagesAsync(string packageId, List<(string url, string version)> packages, int limit, CancellationToken ct)

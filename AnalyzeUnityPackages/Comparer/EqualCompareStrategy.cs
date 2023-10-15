@@ -21,9 +21,9 @@ public class EqualCompareStrategy : ICompareStrategy
 			}
 		}
 
-		foreach (KeyValuePair<string, ClassData> pair in src.ClassesByName)
+		foreach (KeyValuePair<string, ClassData> pair in src.ClassesByFullName)
 		{
-			if (target.ClassesByName.TryGetValue(pair.Key, out ClassData? targetClassData))
+			if (target.ClassesByFullName.TryGetValue(pair.Key, out ClassData? targetClassData))
 			{
 				CompareClassData(pair.Value, targetClassData, ref value, ref maxValue);
 			}

@@ -1,5 +1,4 @@
 using AssetRipper.Primitives;
-using System.Diagnostics;
 
 namespace AssetRipper.AnalyzeUnityPackages.Primitives;
 
@@ -9,7 +8,7 @@ public class AnalyzeData
 	public PackageVersion Version { get; init; }
 	public UnityVersion MinUnityVersion { get; init; }
 	public Dictionary<string, EnumData> GlobalEnums { get; init; }
-	public Dictionary<string, ClassData> ClassesByName { get; init; }
+	public Dictionary<string, ClassData> ClassesByFullName { get; init; }
 
 	public AnalyzeData()
 	{
@@ -17,7 +16,7 @@ public class AnalyzeData
 		Version = PackageVersion.Zero;
 		MinUnityVersion = UnityVersion.MinVersion;
 		GlobalEnums = new Dictionary<string, EnumData>();
-		ClassesByName = new Dictionary<string, ClassData>();
+		ClassesByFullName = new Dictionary<string, ClassData>();
 	}
 
 	public AnalyzeData(string packageId) : this(packageId, PackageVersion.Zero, UnityVersion.MinVersion) { }
@@ -28,7 +27,7 @@ public class AnalyzeData
 		Version = version;
 		MinUnityVersion = minUnityVersion;
 		GlobalEnums = new Dictionary<string, EnumData>();
-		ClassesByName = new Dictionary<string, ClassData>();
+		ClassesByFullName = new Dictionary<string, ClassData>();
 	}
 }
 
@@ -46,6 +45,10 @@ public class ClassData
 	public List<IndexerData> Indexer = new();
 	public List<MethodData> Methods = new();
 	public UnityGuid UnityGuid = UnityGuid.Zero;
+
+	public string FullName => string.IsNullOrEmpty(Namespace) ? Name : Namespace + "." + Name;
+
+	public static string GetFullName(string? @namespace, string name) => string.IsNullOrEmpty(@namespace) ? name : @namespace + "." + name;
 }
 
 public struct FieldData
@@ -98,7 +101,7 @@ public struct ParameterData
 	public string Type;
 	public ParameterModifier Modifier;
 
-	public override string ToString() => $"{Type} {Name}";
+	public override string ToString() => $"{Enum.GetName(typeof(ParameterModifier), Modifier)} {Type} {Name}";
 }
 
 public struct EnumData

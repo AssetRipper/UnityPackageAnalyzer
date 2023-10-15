@@ -187,130 +187,143 @@ public static class PackageAnalyzer
 			switch (node)
 			{
 				case EnumDeclarationSyntax enumSyntax:
-					string enumName = enumSyntax.Identifier.GetClassName(enumSyntax.Parent, null);
-					analyzeData.GlobalEnums.Add(enumName,
-						new EnumData
-						{
-							ProtectionLevel = enumSyntax.GetProtectionLevel(enumSyntax.Modifiers),
-							Name = enumName,
-							Values = enumSyntax.Members.Select(declaration => declaration.Identifier.Text).ToList()
-						});
+					{
+						string enumName = enumSyntax.Identifier.GetClassName(enumSyntax.Parent, null);
+						analyzeData.GlobalEnums.Add(enumName,
+							new EnumData
+							{
+								ProtectionLevel = enumSyntax.GetProtectionLevel(enumSyntax.Modifiers),
+								Name = enumName,
+								Values = enumSyntax.Members.Select(declaration => declaration.Identifier.Text).ToList()
+							});
+					}
 					break;
 				case ClassDeclarationSyntax classSyntax:
-					string className = classSyntax.Identifier.GetClassName(classSyntax.Parent, classSyntax.TypeParameterList);
-					if (!analyzeData.ClassesByName.TryGetValue(className, out ClassData classData))
 					{
-						classData = new ClassData
+						string className = classSyntax.Identifier.GetClassName(classSyntax.Parent, classSyntax.TypeParameterList);
+						string fullName = ClassData.GetFullName(namespaceText, className);
+						if (!analyzeData.ClassesByFullName.TryGetValue(fullName, out ClassData classData))
 						{
-							Namespace = namespaceText,
-							ProtectionLevel = classSyntax.GetProtectionLevel(classSyntax.Modifiers),
-							Modifier = classSyntax.Modifiers.GetModifiers(),
-							Type = ClassType.CLASS,
-							Name = className,
-							UnityGuid = unityGuid
-						};
+							classData = new ClassData
+							{
+								Namespace = namespaceText,
+								ProtectionLevel = classSyntax.GetProtectionLevel(classSyntax.Modifiers),
+								Modifier = classSyntax.Modifiers.GetModifiers(),
+								Type = ClassType.CLASS,
+								Name = className,
+								UnityGuid = unityGuid
+							};
 
-						analyzeData.ClassesByName.Add(className, classData);
-					}
-
-					classData.Modifier |= classSyntax.Modifiers.GetModifiers();
-
-					if (classSyntax.BaseList != null)
-					{
-						foreach (string inheritor in classSyntax.BaseList.Types.Select(baseType => baseType.Type.GetTypeText(usingAlias)))
-						{
-							classData.Inheritors.Add(inheritor);
+							analyzeData.ClassesByFullName.Add(fullName, classData);
 						}
-					}
 
-					AnalyzeClass(workQueue, classSyntax, classData, usingAlias, ProtectionLevel.UNKNOWN, classData.Modifier & Modifier.STATIC);
+						classData.Modifier |= classSyntax.Modifiers.GetModifiers();
+
+						if (classSyntax.BaseList != null)
+						{
+							foreach (string inheritor in classSyntax.BaseList.Types.Select(baseType => baseType.Type.GetTypeText(usingAlias)))
+							{
+								classData.Inheritors.Add(inheritor);
+							}
+						}
+
+						AnalyzeClass(workQueue, classSyntax, classData, usingAlias, ProtectionLevel.UNKNOWN, classData.Modifier & Modifier.STATIC);
+					}
 
 					break;
 				case StructDeclarationSyntax structSyntax:
-					string structName = structSyntax.Identifier.GetClassName(structSyntax.Parent, structSyntax.TypeParameterList);
-					if (!analyzeData.ClassesByName.TryGetValue(structName, out ClassData structData))
 					{
-						structData = new ClassData
+						string structName = structSyntax.Identifier.GetClassName(structSyntax.Parent, structSyntax.TypeParameterList);
+						string fullStructName = ClassData.GetFullName(namespaceText, structName);
+						if (!analyzeData.ClassesByFullName.TryGetValue(fullStructName, out ClassData structData))
+						{
+							structData = new ClassData
+							{
+								Namespace = namespaceText,
+								ProtectionLevel = structSyntax.GetProtectionLevel(structSyntax.Modifiers),
+								Type = ClassType.STRUCT,
+								Name = structName,
+								UnityGuid = unityGuid
+							};
+
+							analyzeData.ClassesByFullName.Add(fullStructName, structData);
+						}
+
+						structData.Modifier |= structSyntax.Modifiers.GetModifiers();
+
+						if (structSyntax.BaseList != null)
+						{
+							foreach (string inheritor in structSyntax.BaseList.Types.Select(baseType => baseType.Type.GetTypeText(usingAlias)))
+							{
+								structData.Inheritors.Add(inheritor);
+							}
+						}
+
+						AnalyzeClass(workQueue, structSyntax, structData, usingAlias, ProtectionLevel.UNKNOWN, Modifier.NONE);
+					}
+					break;
+				case InterfaceDeclarationSyntax interfaceSyntax:
+					{
+						ProtectionLevel interfaceProtection = interfaceSyntax.GetProtectionLevel(interfaceSyntax.Modifiers);
+						ClassData interfaceData = new()
 						{
 							Namespace = namespaceText,
-							ProtectionLevel = structSyntax.GetProtectionLevel(structSyntax.Modifiers),
-							Type = ClassType.STRUCT,
-							Name = structName,
+							ProtectionLevel = interfaceProtection,
+							Type = ClassType.INTERFACE,
+							Name = interfaceSyntax.Identifier.GetClassName(interfaceSyntax.Parent, interfaceSyntax.TypeParameterList),
 							UnityGuid = unityGuid
 						};
 
-						analyzeData.ClassesByName.Add(structName, structData);
-					}
+						interfaceData.Modifier |= interfaceSyntax.Modifiers.GetModifiers();
 
-					structData.Modifier |= structSyntax.Modifiers.GetModifiers();
-
-
-					if (structSyntax.BaseList != null)
-					{
-						foreach (string inheritor in structSyntax.BaseList.Types.Select(baseType => baseType.Type.GetTypeText(usingAlias)))
+						if (interfaceSyntax.BaseList != null)
 						{
-							structData.Inheritors.Add(inheritor);
+							interfaceData.Inheritors = new SortedSet<string>(interfaceSyntax.BaseList.Types.Select(baseType => baseType.Type.GetTypeText(usingAlias)));
 						}
+
+						AnalyzeClass(workQueue, interfaceSyntax, interfaceData, usingAlias, ProtectionLevel.PUBLIC, Modifier.NONE);
+						analyzeData.ClassesByFullName.Add(interfaceData.Name, interfaceData);
 					}
-
-					AnalyzeClass(workQueue, structSyntax, structData, usingAlias, ProtectionLevel.UNKNOWN, Modifier.NONE);
-					break;
-				case InterfaceDeclarationSyntax interfaceSyntax:
-					ProtectionLevel interfaceProtection = interfaceSyntax.GetProtectionLevel(interfaceSyntax.Modifiers);
-					ClassData interfaceData = new()
-					{
-						Namespace = namespaceText,
-						ProtectionLevel = interfaceProtection,
-						Type = ClassType.INTERFACE,
-						Name = interfaceSyntax.Identifier.GetClassName(interfaceSyntax.Parent, interfaceSyntax.TypeParameterList),
-						UnityGuid = unityGuid
-					};
-
-					interfaceData.Modifier |= interfaceSyntax.Modifiers.GetModifiers();
-
-					if (interfaceSyntax.BaseList != null)
-					{
-						interfaceData.Inheritors = new SortedSet<string>(interfaceSyntax.BaseList.Types.Select(baseType => baseType.Type.GetTypeText(usingAlias)));
-					}
-
-					AnalyzeClass(workQueue, interfaceSyntax, interfaceData, usingAlias, ProtectionLevel.PUBLIC, Modifier.NONE);
-					analyzeData.ClassesByName.Add(interfaceData.Name, interfaceData);
 					break;
 				case DelegateDeclarationSyntax delegateSyntax:
-					ClassData delegateData = new()
 					{
-						Namespace = namespaceText,
-						ProtectionLevel = delegateSyntax.GetProtectionLevel(delegateSyntax.Modifiers),
-						Modifier = delegateSyntax.Modifiers.GetModifiers(),
-						Type = ClassType.DELEGATE,
-						Name = delegateSyntax.Identifier.GetClassName(delegateSyntax.Parent, delegateSyntax.TypeParameterList),
-						UnityGuid = unityGuid
-					};
+						ClassData delegateData = new()
+						{
+							Namespace = namespaceText,
+							ProtectionLevel = delegateSyntax.GetProtectionLevel(delegateSyntax.Modifiers),
+							Modifier = delegateSyntax.Modifiers.GetModifiers(),
+							Type = ClassType.DELEGATE,
+							Name = delegateSyntax.Identifier.GetClassName(delegateSyntax.Parent, delegateSyntax.TypeParameterList),
+							UnityGuid = unityGuid
+						};
 
-					delegateData.Methods.Add(new MethodData
-					{
-						Protection = ProtectionLevel.PUBLIC,
-						Name = "Invoke",
-						Parameter = delegateSyntax.ParameterList.Parameters.Select(p => p.GetParameterData(usingAlias)).ToArray(),
-						Return = delegateSyntax.ReturnType.GetTypeText(usingAlias)
-					});
+						delegateData.Methods.Add(new MethodData
+						{
+							Protection = ProtectionLevel.PUBLIC,
+							Name = "Invoke",
+							Parameter = delegateSyntax.ParameterList.Parameters.Select(p => p.GetParameterData(usingAlias)).ToArray(),
+							Return = delegateSyntax.ReturnType.GetTypeText(usingAlias)
+						});
 
-					analyzeData.ClassesByName.Add(delegateData.Name, delegateData);
+						analyzeData.ClassesByFullName.Add(delegateData.Name, delegateData);
+					}
 					break;
 				case NamespaceDeclarationSyntax namespaceSyntax:
-					namespaceText = namespaceSyntax.Name.ToString(); // Namespaces need full name and not only right side
-					if (namespaceText != "zzzUnity.Burst.CodeGen") // Custom Burst namespace which should be ignored
 					{
-						workQueue.EnqueueRange(node.ChildNodes());
+						namespaceText = namespaceSyntax.Name.ToString(); // Namespaces need full name and not only right side
+						if (namespaceText != "zzzUnity.Burst.CodeGen") // Custom Burst namespace which should be ignored
+						{
+							workQueue.EnqueueRange(namespaceSyntax.Members);
+						}
 					}
-
 					break;
 				case UsingDirectiveSyntax usingSyntax:
-					if (usingSyntax.Alias != null)
 					{
-						usingAlias.Add(usingSyntax.Alias.Name.GetTypeText(new()), usingSyntax.Name.GetTypeText(new()));
+						if (usingSyntax.Alias != null)
+						{
+							usingAlias.Add(usingSyntax.Alias.Name.GetTypeText(new()), usingSyntax.Name.GetTypeText(new()));
+						}
 					}
-
 					break;
 			}
 		}
@@ -331,18 +344,18 @@ public static class PackageAnalyzer
 					Modifier fieldModifiers = fieldSyntax.Modifiers.GetModifiers(classInheritingModifiers) & ~Modifier.SEALED;
 					string type = fieldSyntax.Declaration.Type.GetTypeText(usingAlias);
 
-                    foreach (VariableDeclaratorSyntax declaratorSyntax in fieldSyntax.Declaration.Variables)
-                    {
-                        classData.Fields.Add(new FieldData
-                        {
-                            Protection = fieldProtectLevel,
-                            Modifier = fieldModifiers,
-                            Name = declaratorSyntax.Identifier.Text,
-                            Type = type
-                        });
-                    }
+					foreach (VariableDeclaratorSyntax declaratorSyntax in fieldSyntax.Declaration.Variables)
+					{
+						classData.Fields.Add(new FieldData
+						{
+							Protection = fieldProtectLevel,
+							Modifier = fieldModifiers,
+							Name = declaratorSyntax.Identifier.Text,
+							Type = type
+						});
+					}
 
-                    break;
+					break;
 				case PropertyDeclarationSyntax propertySyntax:
 					ProtectionLevel baseProtection = EnumExtension.Max(propertySyntax.GetProtectionLevel(propertySyntax.Modifiers), classInheritingProtection);
 
@@ -383,11 +396,18 @@ public static class PackageAnalyzer
 					});
 					break;
 				case MethodDeclarationSyntax methodSyntax:
+					string name = methodSyntax.Identifier.GetCleanName(methodSyntax.TypeParameterList).Split('.').Last();
+
+					if (methodSyntax.ExplicitInterfaceSpecifier != null)
+					{
+						name = methodSyntax.ExplicitInterfaceSpecifier.Name.GetTypeText(usingAlias) + "." + name;
+					}
+
 					classData.Methods.Add(new MethodData
 					{
 						Protection = EnumExtension.Max(methodSyntax.GetProtectionLevel(methodSyntax.Modifiers), classInheritingProtection),
 						Modifier = methodSyntax.Modifiers.GetModifiers(classInheritingModifiers) & ~Modifier.SEALED,
-						Name = methodSyntax.Identifier.GetCleanName(methodSyntax.TypeParameterList).Split('.').Last(),
+						Name = name,
 						Parameter = methodSyntax.ParameterList.Parameters.Select(p => p.GetParameterData(usingAlias)).ToArray(),
 						Return = methodSyntax.ReturnType.GetTypeText(usingAlias)
 					});

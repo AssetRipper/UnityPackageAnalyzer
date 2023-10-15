@@ -1,4 +1,4 @@
-﻿using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.AnalyzeUnityPackages.Primitives;
 
 namespace AssetRipper.AnalyzeUnityPackages.Comparer;
 
@@ -16,15 +16,15 @@ public class BalancedCompareStrategy : ICompareStrategy
 			}
 		}
 
-		foreach (KeyValuePair<string, ClassData> pair in src.ClassesByName)
+		foreach (KeyValuePair<string, ClassData> pair in src.ClassesByFullName)
 		{
-			if (target.ClassesByName.TryGetValue(pair.Key, out ClassData targetClassData))
+			if (target.ClassesByFullName.TryGetValue(pair.Key, out ClassData targetClassData))
 			{
 				value += CompareClassData(pair.Value, targetClassData);
 			}
 		}
 
-		return value / (src.GlobalEnums.Count + src.ClassesByName.Count);
+		return value / (src.GlobalEnums.Count + src.ClassesByFullName.Count);
 	}
 
 	private static double CompareEnumData(EnumData src, EnumData target)

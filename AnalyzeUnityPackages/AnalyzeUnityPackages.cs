@@ -138,7 +138,7 @@ public static class AnalyzeUnityPackages
 			return null;
 		}
 
-		AnalyzeData? assemblyAnalyzeData = AssemblyAnalyzer.AnalyzeAssembly(packageId, dllFile);
+		AnalyzeData? assemblyAnalyzeData = AssemblyAnalyzer.AnalyzeAssembly(packageId, dllFile, gameVersion);
 		if (assemblyAnalyzeData == null)
 		{
 			Logger.Error($"Could not analyze given dll: {dllFileName}");
@@ -161,7 +161,15 @@ public static class AnalyzeUnityPackages
 		PackageCompareResult compareResults = new();
 		foreach (AnalyzeData targetData in targetAnalyzeDatum)
 		{
-			compareResults.ProbabilityByVersion[targetData.Version] = strategy.CompareAnalyzeData(assemblyAnalyzeData, targetData);
+			try
+			{
+				compareResults.ProbabilityByVersion[targetData.Version] = strategy.CompareAnalyzeData(assemblyAnalyzeData, targetData);
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex, $"An error occured while comparing {packageId} assembly against {packageId}@{targetData.Version}");
+				throw;
+			}
 		}
 
 		return compareResults;
@@ -198,7 +206,7 @@ public static class AnalyzeUnityPackages
 	{
 		const string packageId = "com.unity.burst";
 
-		AnalyzeData? assemblyAnalyzeData = AssemblyAnalyzer.AnalyzeAssembly(packageId, dllFile);
+		AnalyzeData? assemblyAnalyzeData = AssemblyAnalyzer.AnalyzeAssembly(packageId, dllFile, gameVersion);
 		if (assemblyAnalyzeData == null)
 		{
 			Logger.Error("Could not analyze Unity.Burst.dll");

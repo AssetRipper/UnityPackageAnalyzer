@@ -20,7 +20,7 @@ public static class AssemblyAnalyzer
 		return loadContext;
 	});
 
-	public static AnalyzeData? AnalyzeAssembly(string packageId, string srcFile)
+	public static AnalyzeData? AnalyzeAssembly(string packageId, string srcFile, UnityVersion gameVersion)
 	{
 		if (!File.Exists(srcFile))
 		{
@@ -28,7 +28,7 @@ public static class AssemblyAnalyzer
 			return null;
 		}
 
-		AnalyzeData analyzeData = new(packageId, new PackageVersion(), UnityVersion.MinVersion);
+		AnalyzeData analyzeData = new(packageId, new PackageVersion(), gameVersion);
 		Assembly assembly = assemblyContext.Value.LoadFromAssemblyPath(srcFile);
 
 		AnalyzeAssembly(analyzeData, assembly);
@@ -66,11 +66,11 @@ public static class AssemblyAnalyzer
 					analyzeData.GlobalEnums.Add(enumData.Name, enumData);
 				}
 				else
-				{
-					string declaringName = type.DeclaringType.GetCleanName();
-					if (!localEnumData.TryGetValue(declaringName, out List<EnumData> classEnums))
+                {
+					string declaringFullName = ClassData.GetFullName(type.Namespace, type.DeclaringType.GetCleanName(type.DeclaringType.DeclaringType));
+					if (!localEnumData.TryGetValue(declaringFullName, out List<EnumData> classEnums))
 					{
-						localEnumData[declaringName] = classEnums = new List<EnumData>();
+						localEnumData[declaringFullName] = classEnums = new List<EnumData>();
 					}
 
 					classEnums.Add(enumData);
@@ -87,7 +87,7 @@ public static class AssemblyAnalyzer
 				Name = type.GetCleanName(type.DeclaringType),
 				Inheritors = type.GetBaseAndAllInterfaceNames()
 			};
-			analyzeData.ClassesByName.Add(classData.Name, classData);
+			analyzeData.ClassesByFullName.Add(classData.FullName, classData);
 
 			if (type.IsValueType)
 			{
@@ -120,13 +120,13 @@ public static class AssemblyAnalyzer
 
 		foreach (KeyValuePair<string, List<EnumData>> pair in localEnumData)
 		{
-			if (analyzeData.ClassesByName.TryGetValue(pair.Key, out ClassData classData))
+			if (analyzeData.ClassesByFullName.TryGetValue(pair.Key, out ClassData classData))
 			{
 				classData.Enums.AddRange(pair.Value);
 			}
 			else
 			{
-				ClassData? fallbackClassData = analyzeData.ClassesByName.Values.FirstOrDefault(cd => cd.Name.Split('.').Contains(pair.Key));
+				ClassData? fallbackClassData = analyzeData.ClassesByFullName.Values.FirstOrDefault(cd => cd.Name.Split('.').Contains(pair.Key));
 				if (fallbackClassData != null)
 				{
 					fallbackClassData.Enums.AddRange(pair.Value);

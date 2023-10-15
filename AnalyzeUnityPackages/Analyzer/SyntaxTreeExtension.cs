@@ -136,7 +136,7 @@ public static class SyntaxTreeExtension
 
     public static ParameterData GetParameterData(this ParameterSyntax paraSyntax, Dictionary<string, string> usingAlias)
     {
-        return new ParameterData()
+        return new ParameterData
         {
             Type = paraSyntax.Type.GetTypeText(usingAlias),
             Name = paraSyntax.Identifier.ValueText,
