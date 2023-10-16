@@ -1,0 +1,8 @@
+﻿# Default ignored files
+/shelf/
+/workspace.xml
+# Rider ignored files
+/projectSettingsUpdater.xml
+/modules.xml
+/.idea.AssetRipper.AnalyzeUnityPackages.iml
+/contentModel.xml
