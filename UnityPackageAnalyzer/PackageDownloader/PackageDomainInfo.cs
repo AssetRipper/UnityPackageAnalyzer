@@ -1,4 +1,4 @@
-﻿namespace AssetRipper.AnalyzeUnityPackages.PackageDownloader;
+﻿namespace AssetRipper.UnityPackageAnalyzer.PackageDownloader;
 
 public class PackageDomainInfo
 {

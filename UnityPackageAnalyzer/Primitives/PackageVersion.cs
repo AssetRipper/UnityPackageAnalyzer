@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-namespace AssetRipper.AnalyzeUnityPackages.Primitives;
+namespace AssetRipper.UnityPackageAnalyzer.Primitives;
 
 [JsonConverter(typeof(PackageVersionJsonConverter))]
 public readonly struct PackageVersion : IComparable, IComparable<PackageVersion>, IEquatable<PackageVersion>

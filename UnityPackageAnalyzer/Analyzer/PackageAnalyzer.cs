@@ -1,18 +1,18 @@
-using AssetRipper.AnalyzeUnityPackages.Helper;
-using AssetRipper.AnalyzeUnityPackages.PackageDownloader;
-using AssetRipper.AnalyzeUnityPackages.Primitives;
 using AssetRipper.Primitives;
+using AssetRipper.UnityPackageAnalyzer.Helper;
+using AssetRipper.UnityPackageAnalyzer.PackageDownloader;
+using AssetRipper.UnityPackageAnalyzer.Primitives;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Concurrent;
 
-namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
+namespace AssetRipper.UnityPackageAnalyzer.Analyzer;
 
 public static class PackageAnalyzer
 {
-	private static readonly string analyzeResultPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "AnalyzeUnityPackages", "AnalyzedPackages");
+	private static readonly string analyzeResultPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "UnityPackageAnalyzer", "AnalyzedPackages");
 
 	public static bool HasAnyAnalyzedPackages(string packageId)
 	{

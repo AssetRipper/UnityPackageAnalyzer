@@ -1,6 +1,6 @@
-﻿using AssetRipper.AnalyzeUnityPackages.Primitives;
+﻿using AssetRipper.UnityPackageAnalyzer.Primitives;
 
-namespace AssetRipper.AnalyzeUnityPackages.Comparer;
+namespace AssetRipper.UnityPackageAnalyzer.Comparer;
 
 public class EqualCompareStrategy : ICompareStrategy
 {

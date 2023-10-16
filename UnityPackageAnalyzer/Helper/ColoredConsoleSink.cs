@@ -5,7 +5,7 @@ using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Formatting.Display;
 
-namespace AssetRipper.AnalyzeUnityPackages.Helper;
+namespace AssetRipper.UnityPackageAnalyzer.Helper;
 
 public class ColoredConsoleSink : ILogEventSink
 {

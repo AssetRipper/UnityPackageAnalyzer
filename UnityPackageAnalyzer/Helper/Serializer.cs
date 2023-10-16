@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace AssetRipper.AnalyzeUnityPackages.Helper;
+namespace AssetRipper.UnityPackageAnalyzer.Helper;
 
 public static class Serializer
 {

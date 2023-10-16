@@ -1,15 +1,15 @@
-using AssetRipper.AnalyzeUnityPackages.Analyzer;
-using AssetRipper.AnalyzeUnityPackages.Comparer;
-using AssetRipper.AnalyzeUnityPackages.Helper;
-using AssetRipper.AnalyzeUnityPackages.PackageDownloader;
-using AssetRipper.AnalyzeUnityPackages.Primitives;
-using AssetRipper.Primitives;
+﻿using AssetRipper.Primitives;
+using AssetRipper.UnityPackageAnalyzer.Analyzer;
+using AssetRipper.UnityPackageAnalyzer.Comparer;
+using AssetRipper.UnityPackageAnalyzer.Helper;
+using AssetRipper.UnityPackageAnalyzer.PackageDownloader;
+using AssetRipper.UnityPackageAnalyzer.Primitives;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 
-namespace AssetRipper.AnalyzeUnityPackages;
+namespace AssetRipper.UnityPackageAnalyzer;
 
-public static class AnalyzeUnityPackages
+public static class UnityPackageAnalyzer
 {
 	private static readonly Dictionary<string, string> specialPackageDllNamesById = new()
 	{

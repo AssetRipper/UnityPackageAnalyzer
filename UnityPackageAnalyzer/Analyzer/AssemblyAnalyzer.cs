@@ -1,10 +1,10 @@
-using AssetRipper.AnalyzeUnityPackages.Helper;
-using AssetRipper.AnalyzeUnityPackages.Primitives;
 using AssetRipper.Primitives;
+using AssetRipper.UnityPackageAnalyzer.Helper;
+using AssetRipper.UnityPackageAnalyzer.Primitives;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
+namespace AssetRipper.UnityPackageAnalyzer.Analyzer;
 
 public static class AssemblyAnalyzer
 {

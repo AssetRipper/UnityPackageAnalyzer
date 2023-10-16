@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AssetRipper.AnalyzeUnityPackages.Primitives;
+namespace AssetRipper.UnityPackageAnalyzer.Primitives;
 
 public sealed class PackageVersionJsonConverter : JsonConverter<PackageVersion>
 {

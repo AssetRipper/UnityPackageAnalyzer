@@ -1,7 +1,7 @@
 ﻿using Serilog;
 using System.Diagnostics;
 
-namespace AssetRipper.AnalyzeUnityPackages.Helper;
+namespace AssetRipper.UnityPackageAnalyzer.Helper;
 
 public static class Logger
 {

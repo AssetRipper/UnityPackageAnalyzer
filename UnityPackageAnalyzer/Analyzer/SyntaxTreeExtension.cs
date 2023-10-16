@@ -1,8 +1,8 @@
-using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.UnityPackageAnalyzer.Primitives;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
+namespace AssetRipper.UnityPackageAnalyzer.Analyzer;
 
 public static class SyntaxTreeExtension
 {

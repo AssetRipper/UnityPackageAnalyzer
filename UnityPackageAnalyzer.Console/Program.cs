@@ -1,10 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using AssetRipper.AnalyzeUnityPackages;
-using AssetRipper.AnalyzeUnityPackages.Comparer;
-using AssetRipper.AnalyzeUnityPackages.Helper;
-using AssetRipper.AnalyzeUnityPackages.Primitives;
 using AssetRipper.Primitives;
+using AssetRipper.UnityPackageAnalyzer;
+using AssetRipper.UnityPackageAnalyzer.Comparer;
+using AssetRipper.UnityPackageAnalyzer.Helper;
+using AssetRipper.UnityPackageAnalyzer.Primitives;
 using System.Text;
 
 Logger.Init();
@@ -82,7 +82,7 @@ Logger.Info($"Strategy: {strategy.GetType().Name}");
 Logger.Info($"Unity Version: {gameVersion}\n");
 
 CancellationToken ct = new();
-CompareResults analyzeResults = await AnalyzeUnityPackages.CompareGameAssembliesAsync(managedPath, strategy, gameVersion.Value, ct);
+CompareResults analyzeResults = await UnityPackageAnalyzer.CompareGameAssembliesAsync(managedPath, strategy, gameVersion.Value, ct);
 
 StringBuilder sb = new("\n\nAnalyze Results:\n");
 foreach ((string packageId, PackageCompareResult packageResult) in analyzeResults.PackageResults)

@@ -1,9 +1,9 @@
-using AssetRipper.AnalyzeUnityPackages.Primitives;
+using AssetRipper.UnityPackageAnalyzer.Primitives;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using ParameterModifier = AssetRipper.AnalyzeUnityPackages.Primitives.ParameterModifier;
+using ParameterModifier = AssetRipper.UnityPackageAnalyzer.Primitives.ParameterModifier;
 
-namespace AssetRipper.AnalyzeUnityPackages.Analyzer;
+namespace AssetRipper.UnityPackageAnalyzer.Analyzer;
 
 public static class TypeAttributesExtension
 {

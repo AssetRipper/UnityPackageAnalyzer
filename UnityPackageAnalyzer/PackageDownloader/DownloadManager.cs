@@ -1,16 +1,16 @@
-﻿using AssetRipper.AnalyzeUnityPackages.Helper;
+﻿using AssetRipper.UnityPackageAnalyzer.Helper;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Tar;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace AssetRipper.AnalyzeUnityPackages.PackageDownloader;
+namespace AssetRipper.UnityPackageAnalyzer.PackageDownloader;
 
 public static class DownloadManager
 {
-	private static readonly string tempListPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "AnalyzeUnityPackages", "PackageDomainInfo");
-	private static readonly string tempExtractPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "AnalyzeUnityPackages", "ExtractedPackages");
+	private static readonly string tempListPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "UnityPackageAnalyzer", "PackageDomainInfo");
+	private static readonly string tempExtractPath = Path.Combine(Path.GetTempPath(), "AssetRipper", "UnityPackageAnalyzer", "ExtractedPackages");
 	private static readonly HttpClient downloadPackageClient = new() { BaseAddress = new Uri("https://download.packages.unity.com/") };
 
 

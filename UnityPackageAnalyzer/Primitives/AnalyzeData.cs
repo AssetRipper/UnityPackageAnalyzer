@@ -1,6 +1,6 @@
 using AssetRipper.Primitives;
 
-namespace AssetRipper.AnalyzeUnityPackages.Primitives;
+namespace AssetRipper.UnityPackageAnalyzer.Primitives;
 
 public class AnalyzeData
 {

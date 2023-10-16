@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalyzeUnityPackages", "AnalyzeUnityPackages\AnalyzeUnityPackages.csproj", "{8476F26A-DFB0-4FE8-85DC-2C8E41B79A82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityPackageAnalyzer", "UnityPackageAnalyzer\UnityPackageAnalyzer.csproj", "{8476F26A-DFB0-4FE8-85DC-2C8E41B79A82}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalyzeUnityPackages.Console", "AnalyzeUnityPackages.Console\AnalyzeUnityPackages.Console.csproj", "{34EF2DA9-A387-4288-9920-6B36F6C50FC0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityPackageAnalyzer.Console", "UnityPackageAnalyzer.Console\UnityPackageAnalyzer.Console.csproj", "{34EF2DA9-A387-4288-9920-6B36F6C50FC0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
